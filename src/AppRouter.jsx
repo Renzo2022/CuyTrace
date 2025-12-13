@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from './modules/Auth/pages/LoginPage.jsx'
-import ProducerDashboard from './modules/Production/pages/ProducerDashboard.jsx'
-import ProcessorDashboard from './modules/Processing/pages/ProcessorDashboard.jsx'
-import LogisticsDashboard from './modules/Logistics/pages/LogisticsDashboard.jsx'
-import RetailDashboard from './modules/Retail/pages/RetailDashboard.jsx'
-import AuditDashboard from './modules/Audit/pages/AuditDashboard.jsx'
-import PublicTracePage from './modules/PublicTrace/pages/PublicTracePage.jsx'
+import ProductionPage from './modules/Production/index.jsx'
+import ProcessingPage from './modules/Processing/index.jsx'
+import LogisticsPage from './modules/Logistics/index.jsx'
+import RetailPage from './modules/Retail/index.jsx'
+import AuditPage from './modules/Audit/index.jsx'
+import PublicTracePage from './modules/PublicTrace/index.jsx'
 import NotFoundPage from './shared/ui/NotFoundPage.jsx'
 import { RequireRole } from './shared/context/RequireRole.jsx'
 import MainLayout from './shared/layouts/MainLayout.jsx'
@@ -20,7 +20,7 @@ export default function AppRouter() {
           path="/producer"
           element={
             <MainLayout title="Production · Granja">
-              <ProducerDashboard />
+              <ProductionPage />
             </MainLayout>
           }
         />
@@ -31,7 +31,7 @@ export default function AppRouter() {
           path="/processor"
           element={
             <MainLayout title="Processing · Acopio + IPFS">
-              <ProcessorDashboard />
+              <ProcessingPage />
             </MainLayout>
           }
         />
@@ -42,7 +42,7 @@ export default function AppRouter() {
           path="/logistics"
           element={
             <MainLayout title="Logistics · Transporte + IoT">
-              <LogisticsDashboard />
+              <LogisticsPage />
             </MainLayout>
           }
         />
@@ -53,7 +53,7 @@ export default function AppRouter() {
           path="/retail"
           element={
             <MainLayout title="Retail · Supermercado">
-              <RetailDashboard />
+              <RetailPage />
             </MainLayout>
           }
         />
@@ -64,7 +64,7 @@ export default function AppRouter() {
           path="/audit"
           element={
             <MainLayout title="Audit · SENASA">
-              <AuditDashboard />
+              <AuditPage />
             </MainLayout>
           }
         />

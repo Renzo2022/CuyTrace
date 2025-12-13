@@ -401,6 +401,17 @@ export function SupplyChainProvider({ children }) {
     [getReadContract],
   )
 
+  const getContadorLotes = useCallback(async () => {
+    try {
+      const contract = await getReadContract()
+      return await contract.contadorLotes()
+    } catch (error) {
+      const msg = getErrorMessage(error)
+      alert(`No se pudo leer contadorLotes: ${msg}`)
+      return null
+    }
+  }, [getReadContract])
+
   const value = useMemo(
     () => ({
       contractAddress: CONTRACT_ADDRESS,
@@ -411,6 +422,7 @@ export function SupplyChainProvider({ children }) {
       isTransacting,
       connectWallet,
       crearLote,
+      getContadorLotes,
       procesarLote,
       transferirCustodia,
       reportarIoT,
@@ -423,6 +435,7 @@ export function SupplyChainProvider({ children }) {
       chainId,
       connectWallet,
       crearLote,
+      getContadorLotes,
       hasMetaMask,
       inspeccionarSenasa,
       isConnecting,
