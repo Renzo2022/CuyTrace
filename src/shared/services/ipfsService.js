@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-export const PINATA_JWT = import.meta?.env?.VITE_PINATA_JWT || ''
+export const PINATA_JWT = import.meta.env.VITE_PINATA_JWT || ''
 
 const PINATA_PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
 
