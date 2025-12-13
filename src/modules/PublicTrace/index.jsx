@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import Button from '../../shared/ui/Button.jsx'
 import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
@@ -39,6 +40,7 @@ function formatDate(seconds) {
 
 export default function PublicTracePage() {
   const { obtenerLote } = useSupplyChain()
+  const params = useParams()
 
   const [id, setId] = useState('')
   const [lote, setLote] = useState(null)
@@ -47,28 +49,43 @@ export default function PublicTracePage() {
 
   const canSearch = useMemo(() => id.trim().length > 0 && !loading, [id, loading])
 
-  const handleSearch = useCallback(async () => {
-    setStatus(null)
-    setLote(null)
+  const loadById = useCallback(
+    async (value) => {
+      setStatus(null)
+      setLote(null)
 
-    if (!id.trim()) {
-      alert('Ingresa un ID')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const res = await obtenerLote(id.trim())
-      if (!res) {
-        setStatus('No se encontró el lote o no pudo leerse')
+      const v = String(value || '').trim()
+      if (!v) {
+        alert('Ingresa un ID')
         return
       }
-      setLote(res)
-      setStatus('Lote cargado')
-    } finally {
-      setLoading(false)
-    }
-  }, [id, obtenerLote])
+
+      setLoading(true)
+      try {
+        const res = await obtenerLote(v)
+        if (!res) {
+          setStatus('No se encontró el lote o no pudo leerse')
+          return
+        }
+        setLote(res)
+        setStatus('Lote cargado')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [obtenerLote],
+  )
+
+  const handleSearch = useCallback(async () => {
+    return loadById(id)
+  }, [id, loadById])
+
+  useEffect(() => {
+    const paramId = params?.id
+    if (!paramId) return
+    setId(String(paramId))
+    loadById(paramId)
+  }, [loadById, params?.id])
 
   const timeline = useMemo(() => {
     if (!lote) return []

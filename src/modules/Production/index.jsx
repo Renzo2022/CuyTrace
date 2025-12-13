@@ -4,6 +4,7 @@ import Button from '../../shared/ui/Button.jsx'
 import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
+import QrLabel from '../../shared/ui/QrLabel.jsx'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function ProductionPage() {
@@ -14,6 +15,7 @@ export default function ProductionPage() {
   const [lastId, setLastId] = useState(null)
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
+  const [showQr, setShowQr] = useState(false)
 
   const busy = isConnecting || isTransacting || localLoading
 
@@ -49,6 +51,7 @@ export default function ProductionPage() {
       }
 
       setStatus('Éxito: lote acuñado en blockchain')
+      setShowQr(true)
       setProducto('')
       setIpfsOrigen('')
     } finally {
@@ -135,6 +138,8 @@ export default function ProductionPage() {
               <div className="text-sm">{status}</div>
             </Card>
           ) : null}
+
+          {showQr && lastId ? <QrLabel lotId={lastId} /> : null}
 
           {lastId ? (
             <Card className="p-4 bg-white">

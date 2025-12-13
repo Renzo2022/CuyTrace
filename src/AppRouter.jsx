@@ -71,6 +71,7 @@ export default function AppRouter() {
       </Route>
 
       <Route path="/trace" element={<PublicTracePage />} />
+      <Route path="/track/:id" element={<PublicTracePage />} />
 
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFoundPage />} />

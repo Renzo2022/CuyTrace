@@ -4,6 +4,7 @@ import Button from '../../shared/ui/Button.jsx'
 import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
+import QrLabel from '../../shared/ui/QrLabel.jsx'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function ProcessingPage() {
@@ -14,6 +15,7 @@ export default function ProcessingPage() {
   const [addressLogistica, setAddressLogistica] = useState('')
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
+  const [qrLotId, setQrLotId] = useState(null)
 
   const busy = isConnecting || isTransacting || localLoading
 
@@ -32,6 +34,7 @@ export default function ProcessingPage() {
 
   const handleProcesar = useCallback(async () => {
     setStatus(null)
+    setQrLotId(null)
     if (!id.trim()) {
       alert('Ingresa el ID del lote')
       return
@@ -49,6 +52,7 @@ export default function ProcessingPage() {
       const receipt = await procesarLote(id.trim(), ipfsProceso.trim())
       if (!receipt) return
       setStatus('Éxito: lote procesado y registrado')
+      setQrLotId(id.trim())
     } finally {
       setLocalLoading(false)
     }
@@ -156,6 +160,8 @@ export default function ProcessingPage() {
               <div className="text-sm">{status}</div>
             </Card>
           ) : null}
+
+          {qrLotId ? <QrLabel lotId={qrLotId} /> : null}
         </div>
       </Card>
     </div>
