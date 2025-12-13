@@ -1,12 +1,12 @@
 import axios from 'axios'
 
-export const PINATA_JWT
+export const PINATA_JWT = import.meta?.env?.VITE_PINATA_JWT || ''
 
 const PINATA_PIN_FILE_URL = 'https://api.pinata.cloud/pinning/pinFileToIPFS'
 
 export async function uploadToIPFS(file) {
   if (!file) throw new Error('No file provided')
-  if (!PINATA_JWT) throw new Error('PINATA_JWT is missing')
+  if (!PINATA_JWT) throw new Error('VITE_PINATA_JWT is missing')
 
   const formData = new FormData()
   formData.append('file', file)
