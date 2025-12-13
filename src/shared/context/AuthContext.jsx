@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { USERS } from '../data/mockData.js'
+import { USERS } from '../data/mockUsers.js'
 
 const STORAGE_KEY = 'cuytrace.auth.user'
 

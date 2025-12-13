@@ -1,13 +1,15 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { BATCHES } from '../data/mockBatches.js'
 
 const SupplyChainContext = createContext(null)
 
 export function SupplyChainProvider({ children }) {
-  const [batches] = useState([])
+  const [batches, setBatches] = useState(BATCHES)
 
   const value = useMemo(
     () => ({
       batches,
+      setBatches,
     }),
     [batches],
   )

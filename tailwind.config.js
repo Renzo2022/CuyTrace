@@ -8,6 +8,7 @@ export default {
         accent: '#6c7aa6',
         highlight: '#f7ca45',
         background: '#f8fafc',
+        text: '#1e293b',
       },
       boxShadow: {
         brutal: '4px 4px 0px 0px #000',
