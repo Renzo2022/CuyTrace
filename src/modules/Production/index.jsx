@@ -5,23 +5,47 @@ import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
 import QrLabel from '../../shared/ui/QrLabel.jsx'
+import { uploadToIPFS } from '../../shared/services/ipfsService.js'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function ProductionPage() {
   const { account, connectWallet, crearLote, getContadorLotes, isConnecting, isTransacting } = useSupplyChain()
 
   const [producto, setProducto] = useState('')
-  const [ipfsOrigen, setIpfsOrigen] = useState('')
+  const [origenFile, setOrigenFile] = useState(null)
+  const [origenUrl, setOrigenUrl] = useState('')
+  const [isUploadingOrigen, setIsUploadingOrigen] = useState(false)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [lastId, setLastId] = useState(null)
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
   const [showQr, setShowQr] = useState(false)
 
-  const busy = isConnecting || isTransacting || localLoading
+  const busy = isConnecting || isTransacting || localLoading || isUploadingOrigen
 
   const canMint = useMemo(() => {
-    return producto.trim().length > 0 && ipfsOrigen.trim().length > 0 && !busy
-  }, [producto, ipfsOrigen, busy])
+    return producto.trim().length > 0 && origenUrl.trim().length > 0 && !busy
+  }, [producto, origenUrl, busy])
+
+  const handleOrigenFile = useCallback(async (e) => {
+    const file = e.target.files?.[0] || null
+    setOrigenFile(file)
+    setOrigenUrl('')
+
+    if (!file) return
+
+    setIsUploadingOrigen(true)
+    try {
+      const url = await uploadToIPFS(file)
+      setOrigenUrl(url)
+      setStatus('PDF subido a IPFS')
+    } catch (error) {
+      const msg = error?.message || 'No se pudo subir el PDF a IPFS'
+      alert(msg)
+    } finally {
+      setIsUploadingOrigen(false)
+    }
+  }, [])
 
   const handleMint = useCallback(async () => {
     setStatus(null)
@@ -30,8 +54,8 @@ export default function ProductionPage() {
       alert('Ingresa el nombre del producto')
       return
     }
-    if (!ipfsOrigen.trim()) {
-      alert('Ingresa el link/hash del PDF de origen')
+    if (!origenUrl.trim()) {
+      alert('Sube el PDF de origen para continuar')
       return
     }
 
@@ -42,7 +66,7 @@ export default function ProductionPage() {
         if (!acc) return
       }
 
-      const receipt = await crearLote(producto.trim(), ipfsOrigen.trim())
+      const receipt = await crearLote(producto.trim(), origenUrl.trim())
       if (!receipt) return
 
       const contador = await getContadorLotes()
@@ -53,11 +77,13 @@ export default function ProductionPage() {
       setStatus('Éxito: lote acuñado en blockchain')
       setShowQr(true)
       setProducto('')
-      setIpfsOrigen('')
+      setOrigenFile(null)
+      setOrigenUrl('')
+      setFileInputKey((k) => k + 1)
     } finally {
       setLocalLoading(false)
     }
-  }, [account, connectWallet, crearLote, getContadorLotes, ipfsOrigen, producto])
+  }, [account, connectWallet, crearLote, getContadorLotes, origenUrl, producto])
 
   const copyLastId = useCallback(async () => {
     if (!lastId) return
@@ -116,14 +142,19 @@ export default function ProductionPage() {
           </div>
 
           <div>
-            <div className="text-sm">Link PDF Origen (Simulado)</div>
+            <div className="text-sm">PDF Origen (Pinata IPFS)</div>
             <div className="mt-2">
-              <Input
-                value={ipfsOrigen}
-                onChange={(e) => setIpfsOrigen(e.target.value)}
-                placeholder="ipfs://... o https://..."
+              <input
+                key={fileInputKey}
+                type="file"
+                accept="application/pdf"
+                onChange={handleOrigenFile}
                 disabled={busy}
+                className="w-full border-2 border-black shadow-brutal bg-white px-3 py-2 rounded-lg font-bold"
               />
+              <div className="mt-2 text-xs">
+                {isUploadingOrigen ? 'Subiendo a IPFS...' : origenUrl ? 'Listo para acuñar' : origenFile ? 'Archivo seleccionado' : 'Selecciona un PDF'}
+              </div>
             </div>
           </div>
 

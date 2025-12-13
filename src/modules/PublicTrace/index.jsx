@@ -7,12 +7,12 @@ import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
-function toIpfsUrl(value) {
+function toPinataGatewayUrl(value) {
   if (!value) return null
   const v = String(value)
   if (v.startsWith('http://') || v.startsWith('https://')) return v
-  if (v.startsWith('ipfs://')) return `https://ipfs.io/ipfs/${v.replace('ipfs://', '')}`
-  return `https://ipfs.io/ipfs/${v}`
+  if (v.startsWith('ipfs://')) return `https://gateway.pinata.cloud/ipfs/${v.replace('ipfs://', '')}`
+  return `https://gateway.pinata.cloud/ipfs/${v}`
 }
 
 function estadoLabel(estado) {
@@ -90,9 +90,9 @@ export default function PublicTracePage() {
   const timeline = useMemo(() => {
     if (!lote) return []
 
-    const origenUrl = toIpfsUrl(lote.ipfsCertificadoOrigen)
-    const procesoUrl = toIpfsUrl(lote.ipfsCertificadoProceso)
-    const actaUrl = toIpfsUrl(lote.ipfsActaSenasa)
+    const origenUrl = toPinataGatewayUrl(lote.ipfsCertificadoOrigen)
+    const procesoUrl = toPinataGatewayUrl(lote.ipfsCertificadoProceso)
+    const actaUrl = toPinataGatewayUrl(lote.ipfsActaSenasa)
 
     return [
       {
@@ -197,7 +197,7 @@ export default function PublicTracePage() {
                             rel="noreferrer"
                             className="inline-flex border-2 border-black shadow-brutal bg-white px-3 py-2 rounded-lg"
                           >
-                            Abrir PDF / IPFS
+                            VER CERTIFICADO
                           </a>
                         </div>
                       ) : null}

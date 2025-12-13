@@ -5,23 +5,47 @@ import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
 import QrLabel from '../../shared/ui/QrLabel.jsx'
+import { uploadToIPFS } from '../../shared/services/ipfsService.js'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function ProcessingPage() {
   const { account, connectWallet, procesarLote, transferirCustodia, isConnecting, isTransacting } = useSupplyChain()
 
   const [id, setId] = useState('')
-  const [ipfsProceso, setIpfsProceso] = useState('')
+  const [haccpFile, setHaccpFile] = useState(null)
+  const [haccpUrl, setHaccpUrl] = useState('')
+  const [isUploadingHaccp, setIsUploadingHaccp] = useState(false)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [addressLogistica, setAddressLogistica] = useState('')
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
   const [qrLotId, setQrLotId] = useState(null)
 
-  const busy = isConnecting || isTransacting || localLoading
+  const busy = isConnecting || isTransacting || localLoading || isUploadingHaccp
 
   const canProcess = useMemo(() => {
-    return id.trim().length > 0 && ipfsProceso.trim().length > 0 && !busy
-  }, [id, ipfsProceso, busy])
+    return id.trim().length > 0 && haccpUrl.trim().length > 0 && !busy
+  }, [id, haccpUrl, busy])
+
+  const handleHaccpFile = useCallback(async (e) => {
+    const file = e.target.files?.[0] || null
+    setHaccpFile(file)
+    setHaccpUrl('')
+
+    if (!file) return
+
+    setIsUploadingHaccp(true)
+    try {
+      const url = await uploadToIPFS(file)
+      setHaccpUrl(url)
+      setStatus('PDF HACCP subido a IPFS')
+    } catch (error) {
+      const msg = error?.message || 'No se pudo subir el PDF a IPFS'
+      alert(msg)
+    } finally {
+      setIsUploadingHaccp(false)
+    }
+  }, [])
 
   const canTransfer = useMemo(() => {
     return id.trim().length > 0 && addressLogistica.trim().length > 0 && !busy
@@ -39,8 +63,8 @@ export default function ProcessingPage() {
       alert('Ingresa el ID del lote')
       return
     }
-    if (!ipfsProceso.trim()) {
-      alert('Ingresa el link/hash del PDF HACCP')
+    if (!haccpUrl.trim()) {
+      alert('Sube el PDF HACCP para continuar')
       return
     }
 
@@ -49,14 +73,17 @@ export default function ProcessingPage() {
       const acc = await ensureWallet()
       if (!acc) return
 
-      const receipt = await procesarLote(id.trim(), ipfsProceso.trim())
+      const receipt = await procesarLote(id.trim(), haccpUrl.trim())
       if (!receipt) return
       setStatus('Éxito: lote procesado y registrado')
       setQrLotId(id.trim())
+      setHaccpFile(null)
+      setHaccpUrl('')
+      setFileInputKey((k) => k + 1)
     } finally {
       setLocalLoading(false)
     }
-  }, [ensureWallet, id, ipfsProceso, procesarLote])
+  }, [ensureWallet, haccpUrl, id, procesarLote])
 
   const handleTransfer = useCallback(async () => {
     setStatus(null)
@@ -122,14 +149,19 @@ export default function ProcessingPage() {
           </div>
 
           <div>
-            <div className="text-sm">Link PDF HACCP (Simulado)</div>
+            <div className="text-sm">PDF HACCP (Pinata IPFS)</div>
             <div className="mt-2">
-              <Input
-                value={ipfsProceso}
-                onChange={(e) => setIpfsProceso(e.target.value)}
-                placeholder="ipfs://... o https://..."
+              <input
+                key={fileInputKey}
+                type="file"
+                accept="application/pdf"
+                onChange={handleHaccpFile}
                 disabled={busy}
+                className="w-full border-2 border-black shadow-brutal bg-white px-3 py-2 rounded-lg font-bold"
               />
+              <div className="mt-2 text-xs">
+                {isUploadingHaccp ? 'Subiendo a IPFS...' : haccpUrl ? 'Listo para procesar' : haccpFile ? 'Archivo seleccionado' : 'Selecciona un PDF'}
+              </div>
             </div>
           </div>
 

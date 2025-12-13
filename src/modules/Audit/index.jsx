@@ -4,18 +4,23 @@ import Button from '../../shared/ui/Button.jsx'
 import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
+import { uploadToIPFS } from '../../shared/services/ipfsService.js'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function AuditPage() {
-  const { account, connectWallet, inspeccionarSenasa, isConnecting, isTransacting } = useSupplyChain()
+  const { account, connectWallet, inspeccionarSenasa, obtenerLote, isConnecting, isTransacting } = useSupplyChain()
 
   const [id, setId] = useState('')
   const [aprobado, setAprobado] = useState(true)
-  const [ipfsActa, setIpfsActa] = useState('')
+  const [actaFile, setActaFile] = useState(null)
+  const [actaUrl, setActaUrl] = useState('')
+  const [isUploadingActa, setIsUploadingActa] = useState(false)
+  const [fileInputKey, setFileInputKey] = useState(0)
+  const [lote, setLote] = useState(null)
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
 
-  const busy = isConnecting || isTransacting || localLoading
+  const busy = isConnecting || isTransacting || localLoading || isUploadingActa
 
   const ensureWallet = useCallback(async () => {
     if (account) return account
@@ -23,8 +28,50 @@ export default function AuditPage() {
   }, [account, connectWallet])
 
   const canSubmit = useMemo(() => {
-    return id.trim().length > 0 && ipfsActa.trim().length > 0 && !busy
-  }, [id, ipfsActa, busy])
+    return id.trim().length > 0 && actaUrl.trim().length > 0 && !busy
+  }, [id, actaUrl, busy])
+
+  const handleActaFile = useCallback(async (e) => {
+    const file = e.target.files?.[0] || null
+    setActaFile(file)
+    setActaUrl('')
+
+    if (!file) return
+
+    setIsUploadingActa(true)
+    try {
+      const url = await uploadToIPFS(file)
+      setActaUrl(url)
+      setStatus('Acta PDF subida a IPFS')
+    } catch (error) {
+      const msg = error?.message || 'No se pudo subir el PDF a IPFS'
+      alert(msg)
+    } finally {
+      setIsUploadingActa(false)
+    }
+  }, [])
+
+  const handleBuscar = useCallback(async () => {
+    setStatus(null)
+    setLote(null)
+    if (!id.trim()) {
+      alert('Ingresa el ID del lote')
+      return
+    }
+
+    setLocalLoading(true)
+    try {
+      const res = await obtenerLote(id.trim())
+      if (!res) {
+        setStatus('No se pudo leer el lote')
+        return
+      }
+      setLote(res)
+      setStatus('Lote cargado (puedes adjuntar acta en cualquier estado)')
+    } finally {
+      setLocalLoading(false)
+    }
+  }, [id, obtenerLote])
 
   const handleSubmit = useCallback(async () => {
     setStatus(null)
@@ -32,8 +79,8 @@ export default function AuditPage() {
       alert('Ingresa el ID del lote')
       return
     }
-    if (!ipfsActa.trim()) {
-      alert('Ingresa el link/hash del acta PDF')
+    if (!actaUrl.trim()) {
+      alert('Sube el acta PDF para continuar')
       return
     }
 
@@ -42,13 +89,16 @@ export default function AuditPage() {
       const acc = await ensureWallet()
       if (!acc) return
 
-      const receipt = await inspeccionarSenasa(id.trim(), ipfsActa.trim(), aprobado)
+      const receipt = await inspeccionarSenasa(id.trim(), actaUrl.trim(), aprobado)
       if (!receipt) return
       setStatus(aprobado ? 'Éxito: inspección aprobada registrada' : 'Éxito: inspección registrada (no aprobada)')
+      setActaFile(null)
+      setActaUrl('')
+      setFileInputKey((k) => k + 1)
     } finally {
       setLocalLoading(false)
     }
-  }, [aprobado, ensureWallet, id, inspeccionarSenasa, ipfsActa])
+  }, [actaUrl, aprobado, ensureWallet, id, inspeccionarSenasa])
 
   return (
     <div className="space-y-4">
@@ -92,6 +142,19 @@ export default function AuditPage() {
             </div>
           </div>
 
+          <Button variant="secondary" className="w-full" disabled={!id.trim() || busy} onClick={handleBuscar}>
+            {busy ? 'Cargando...' : 'BUSCAR LOTE'}
+          </Button>
+
+          {lote ? (
+            <Card className="p-4 bg-background">
+              <div className="text-xs uppercase tracking-wide">Resumen</div>
+              <div className="mt-2 text-sm">Producto: {String(lote.producto)}</div>
+              <div className="mt-1 text-sm">Estado: {String(lote.estado)}</div>
+              <div className="mt-1 text-xs break-all">Custodio: {String(lote.custodioActual)}</div>
+            </Card>
+          ) : null}
+
           <div className="border-2 border-black shadow-brutal bg-background p-4 rounded-lg">
             <label className="flex items-center gap-3">
               <input
@@ -105,14 +168,19 @@ export default function AuditPage() {
           </div>
 
           <div>
-            <div className="text-sm">Link Acta PDF</div>
+            <div className="text-sm">Acta PDF (Pinata IPFS)</div>
             <div className="mt-2">
-              <Input
-                value={ipfsActa}
-                onChange={(e) => setIpfsActa(e.target.value)}
-                placeholder="ipfs://... o https://..."
+              <input
+                key={fileInputKey}
+                type="file"
+                accept="application/pdf"
+                onChange={handleActaFile}
                 disabled={busy}
+                className="w-full border-2 border-black shadow-brutal bg-white px-3 py-2 rounded-lg font-bold"
               />
+              <div className="mt-2 text-xs">
+                {isUploadingActa ? 'Subiendo a IPFS...' : actaUrl ? 'Listo para registrar' : actaFile ? 'Archivo seleccionado' : 'Selecciona un PDF'}
+              </div>
             </div>
           </div>
 

@@ -8,10 +8,7 @@ function getTrackUrl(id) {
   if (!id && id !== 0) return ''
   const safeId = String(id)
   if (typeof window === 'undefined') return `https://cuytrace.vercel.app/track/${safeId}`
-
-  const host = window.location.hostname || ''
-  const base = host.includes('localhost') || host.includes('127.0.0.1') ? window.location.origin : 'https://cuytrace.vercel.app'
-  return `${base}/track/${safeId}`
+  return `${window.location.origin}/track/${safeId}`
 }
 
 export default function QrLabel({ lotId }) {
@@ -44,7 +41,7 @@ export default function QrLabel({ lotId }) {
           <div className="mt-4">
             <Button className="w-full" onClick={handlePrint}>
               <Printer className="h-4 w-4" />
-              IMPRIMIR ETIQUETA
+              IMPRIMIR
             </Button>
           </div>
           {printed ? <div className="mt-3 text-xs">Estado: listo</div> : null}
