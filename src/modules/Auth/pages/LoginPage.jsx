@@ -51,9 +51,6 @@ export default function LoginPage() {
           </div>
           <div>
             <div className="text-3xl">CuyTrace</div>
-            <div className="mt-1 text-sm font-bold">
-              Role-Based Login (simulado) · Neo-brutalismo
-            </div>
           </div>
         </div>
 
@@ -80,13 +77,6 @@ export default function LoginPage() {
               </div>
             </Card>
           ))}
-        </div>
-
-        <div className="mt-6 border-2 border-black bg-background p-4">
-          <div className="text-sm font-bold">Vista pública</div>
-          <div className="mt-1 text-sm">
-            Accede a <span className="underline">/trace</span> para una vista de trazabilidad pública (placeholder).
-          </div>
         </div>
       </div>
     </div>
