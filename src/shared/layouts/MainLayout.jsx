@@ -1,9 +1,11 @@
-import { Link, useLocation } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Factory, ShieldCheck, ShoppingCart, Tractor, Truck } from 'lucide-react'
 import Card from '../ui/Card.jsx'
 import Button from '../ui/Button.jsx'
 import Badge from '../ui/Badge.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { useSupplyChain } from '../context/SupplyChainContext.jsx'
 
 const ROLE_HOME = {
   PRODUCER: { to: '/producer', label: 'Production', icon: Tractor },
@@ -15,9 +17,23 @@ const ROLE_HOME = {
 
 export default function MainLayout({ title, children }) {
   const { user, logout } = useAuth()
+  const { account, connectWallet, disconnectWallet, hasMetaMask, isConnecting, isTransacting } = useSupplyChain()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const home = user ? ROLE_HOME[user.role] : null
+
+  const walletMismatch = useMemo(() => {
+    if (!user?.walletAddress) return false
+    if (!account) return false
+    return String(user.walletAddress).toLowerCase() !== String(account).toLowerCase()
+  }, [account, user?.walletAddress])
+
+  const handleDisconnect = useCallback(async () => {
+    await disconnectWallet()
+    logout()
+    navigate('/', { replace: true })
+  }, [disconnectWallet, logout, navigate])
 
   const items = [
     ...(home ? [home] : []),
@@ -44,8 +60,42 @@ export default function MainLayout({ title, children }) {
                 {user.deviceId ? <div className="text-xs mt-1">{user.deviceId}</div> : null}
                 {user.branch ? <div className="text-xs mt-1">{user.branch}</div> : null}
                 {user.license ? <div className="text-xs mt-1">{user.license}</div> : null}
+                {user.walletAddress ? <div className="text-xs mt-1 break-all">{user.walletAddress}</div> : null}
               </div>
             ) : null}
+
+            <div className="mt-4 border-2 border-black bg-white p-3 rounded-lg">
+              <div className="text-xs uppercase tracking-wide">Wallet</div>
+              {account ? (
+                <div className="mt-2">
+                  <div className="text-xs break-all">{account}</div>
+                  {walletMismatch ? (
+                    <div className="mt-2 border-2 border-black bg-highlight p-2 rounded-lg text-xs font-bold">
+                      La cuenta conectada no coincide con el rol.
+                    </div>
+                  ) : null}
+                  <div className="mt-3">
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      disabled={isConnecting || isTransacting}
+                      onClick={handleDisconnect}
+                    >
+                      Desconectar wallet
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <div className="text-xs">{hasMetaMask ? 'MetaMask detectado' : 'MetaMask no detectado'}</div>
+                  <div className="mt-3">
+                    <Button className="w-full" disabled={!hasMetaMask || isConnecting} onClick={connectWallet}>
+                      Conectar wallet
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="mt-4 space-y-2">
               {items.map((it) => {
@@ -66,11 +116,6 @@ export default function MainLayout({ title, children }) {
               })}
             </div>
 
-            <div className="mt-4">
-              <Button variant="secondary" className="w-full" onClick={logout}>
-                Logout
-              </Button>
-            </div>
           </Card>
 
           <div>

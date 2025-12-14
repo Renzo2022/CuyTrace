@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { BrowserProvider, Contract } from 'ethers'
 
-const CONTRACT_ADDRESS = '0xA8A3aeFb797158cce9315124Ce3CCe2BEc616505'
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0xA8A3aeFb797158cce9315124Ce3CCe2BEc616505'
 
 const CONTRACT_ABI = [
   { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
@@ -195,6 +195,7 @@ const SupplyChainContext = createContext(null)
 function getErrorMessage(error) {
   if (!error) return 'Error desconocido'
   if (typeof error === 'string') return error
+  if (error?.code === 4001) return 'Solicitud cancelada en MetaMask'
   if (error?.shortMessage) return error.shortMessage
   if (error?.reason) return error.reason
   if (error?.message) return error.message
@@ -206,6 +207,10 @@ export function SupplyChainProvider({ children }) {
   const [chainId, setChainId] = useState(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isTransacting, setIsTransacting] = useState(false)
+  const [manualDisconnected, setManualDisconnected] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('walletDisconnected') === '1'
+  })
 
   const hasMetaMask = typeof window !== 'undefined' && Boolean(window.ethereum)
 
@@ -231,6 +236,12 @@ export function SupplyChainProvider({ children }) {
   const refreshSession = useCallback(async () => {
     if (!hasMetaMask) return
 
+    if (manualDisconnected) {
+      setAccount(null)
+      setChainId(null)
+      return
+    }
+
     try {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' })
       const currentAccount = accounts?.[0] || null
@@ -241,7 +252,7 @@ export function SupplyChainProvider({ children }) {
       setAccount(null)
       setChainId(null)
     }
-  }, [hasMetaMask])
+  }, [hasMetaMask, manualDisconnected])
 
   useEffect(() => {
     refreshSession()
@@ -251,10 +262,12 @@ export function SupplyChainProvider({ children }) {
     if (!hasMetaMask) return
 
     const handleAccountsChanged = (accounts) => {
+      if (manualDisconnected) return
       setAccount(accounts?.[0] || null)
     }
 
     const handleChainChanged = (nextChainId) => {
+      if (manualDisconnected) return
       setChainId(nextChainId)
     }
 
@@ -265,7 +278,7 @@ export function SupplyChainProvider({ children }) {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
       window.ethereum.removeListener('chainChanged', handleChainChanged)
     }
-  }, [hasMetaMask])
+  }, [hasMetaMask, manualDisconnected])
 
   const connectWallet = useCallback(async () => {
     if (!hasMetaMask) {
@@ -275,6 +288,12 @@ export function SupplyChainProvider({ children }) {
 
     setIsConnecting(true)
     try {
+      setManualDisconnected(false)
+      try {
+        window.localStorage.removeItem('walletDisconnected')
+      } catch {
+        // ignore
+      }
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
       const currentAccount = accounts?.[0] || null
       setAccount(currentAccount)
@@ -282,11 +301,37 @@ export function SupplyChainProvider({ children }) {
       setChainId(chain)
       return currentAccount
     } catch (error) {
+      if (error?.code === 4001) {
+        return null
+      }
       const msg = getErrorMessage(error)
       alert(`No se pudo conectar la wallet: ${msg}`)
       return null
     } finally {
       setIsConnecting(false)
+    }
+  }, [hasMetaMask])
+
+  const disconnectWallet = useCallback(async () => {
+    setManualDisconnected(true)
+    setAccount(null)
+    setChainId(null)
+
+    try {
+      window.localStorage.setItem('walletDisconnected', '1')
+    } catch {
+      // ignore
+    }
+
+    if (!hasMetaMask) return
+
+    try {
+      await window.ethereum.request({
+        method: 'wallet_revokePermissions',
+        params: [{ eth_accounts: {} }],
+      })
+    } catch {
+      return
     }
   }, [hasMetaMask])
 
@@ -302,6 +347,9 @@ export function SupplyChainProvider({ children }) {
       const receipt = await tx.wait()
       return receipt
     } catch (error) {
+      if (error?.code === 4001) {
+        return null
+      }
       const msg = getErrorMessage(error)
       alert(`Transacción fallida: ${msg}`)
       return null
@@ -336,8 +384,8 @@ export function SupplyChainProvider({ children }) {
 
   const transferirCustodia = useCallback(
     async (id, nuevoAddress, tipoRolDestino) => {
-      if (tipoRolDestino !== 'LOGISTICA' && tipoRolDestino !== 'RETAIL') {
-        alert('tipoRolDestino debe ser "LOGISTICA" o "RETAIL"')
+      if (tipoRolDestino !== 'ACOPIO' && tipoRolDestino !== 'LOGISTICA' && tipoRolDestino !== 'RETAIL') {
+        alert('tipoRolDestino debe ser "ACOPIO", "LOGISTICA" o "RETAIL"')
         return null
       }
 
@@ -421,6 +469,7 @@ export function SupplyChainProvider({ children }) {
       isConnecting,
       isTransacting,
       connectWallet,
+      disconnectWallet,
       crearLote,
       getContadorLotes,
       procesarLote,
@@ -434,6 +483,7 @@ export function SupplyChainProvider({ children }) {
       account,
       chainId,
       connectWallet,
+      disconnectWallet,
       crearLote,
       getContadorLotes,
       hasMetaMask,

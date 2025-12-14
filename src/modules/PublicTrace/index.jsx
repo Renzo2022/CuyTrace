@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { ArrowLeft, Search } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../../shared/ui/Button.jsx'
 import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
@@ -41,6 +41,7 @@ function formatDate(seconds) {
 export default function PublicTracePage() {
   const { obtenerLote } = useSupplyChain()
   const params = useParams()
+  const navigate = useNavigate()
 
   const [id, setId] = useState('')
   const [lote, setLote] = useState(null)
@@ -48,6 +49,14 @@ export default function PublicTracePage() {
   const [loading, setLoading] = useState(false)
 
   const canSearch = useMemo(() => id.trim().length > 0 && !loading, [id, loading])
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1)
+      return
+    }
+    navigate('/', { replace: true })
+  }, [navigate])
 
   const loadById = useCallback(
     async (value) => {
@@ -121,7 +130,13 @@ export default function PublicTracePage() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <Card className="p-6 bg-background">
-        <div className="text-3xl">Trazabilidad Pública</div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-3xl">Trazabilidad Pública</div>
+          <Button variant="secondary" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Button>
+        </div>
         <div className="mt-2 text-sm font-bold">Ingresa el ID del lote y revisa su historia.</div>
 
         <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px]">

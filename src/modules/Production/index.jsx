@@ -9,7 +9,7 @@ import { uploadToIPFS } from '../../shared/services/ipfsService.js'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function ProductionPage() {
-  const { account, connectWallet, crearLote, getContadorLotes, isConnecting, isTransacting } = useSupplyChain()
+  const { account, connectWallet, crearLote, getContadorLotes, transferirCustodia, isConnecting, isTransacting } = useSupplyChain()
 
   const [producto, setProducto] = useState('')
   const [origenFile, setOrigenFile] = useState(null)
@@ -17,6 +17,7 @@ export default function ProductionPage() {
   const [isUploadingOrigen, setIsUploadingOrigen] = useState(false)
   const [fileInputKey, setFileInputKey] = useState(0)
   const [lastId, setLastId] = useState(null)
+  const [addressAcopio, setAddressAcopio] = useState(() => import.meta.env.VITE_WALLET_PROCESSOR || '')
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
   const [showQr, setShowQr] = useState(false)
@@ -26,6 +27,15 @@ export default function ProductionPage() {
   const canMint = useMemo(() => {
     return producto.trim().length > 0 && origenUrl.trim().length > 0 && !busy
   }, [producto, origenUrl, busy])
+
+  const canTransferToAcopio = useMemo(() => {
+    return Boolean(lastId) && addressAcopio.trim().length > 0 && !busy
+  }, [addressAcopio, busy, lastId])
+
+  const ensureWallet = useCallback(async () => {
+    if (account) return account
+    return await connectWallet()
+  }, [account, connectWallet])
 
   const handleOrigenFile = useCallback(async (e) => {
     const file = e.target.files?.[0] || null
@@ -61,10 +71,8 @@ export default function ProductionPage() {
 
     setLocalLoading(true)
     try {
-      if (!account) {
-        const acc = await connectWallet()
-        if (!acc) return
-      }
+      const acc = await ensureWallet()
+      if (!acc) return
 
       const receipt = await crearLote(producto.trim(), origenUrl.trim())
       if (!receipt) return
@@ -83,7 +91,33 @@ export default function ProductionPage() {
     } finally {
       setLocalLoading(false)
     }
-  }, [account, connectWallet, crearLote, getContadorLotes, origenUrl, producto])
+  }, [crearLote, ensureWallet, getContadorLotes, origenUrl, producto])
+
+  const handleTransferToAcopio = useCallback(async () => {
+    setStatus(null)
+
+    if (!lastId) {
+      alert('Primero crea un lote (necesitas un ID)')
+      return
+    }
+    if (!addressAcopio.trim()) {
+      alert('Ingresa la address del centro de acopio')
+      return
+    }
+
+    setLocalLoading(true)
+    try {
+      const acc = await ensureWallet()
+      if (!acc) return
+
+      const receipt = await transferirCustodia(String(lastId).trim(), addressAcopio.trim(), 'ACOPIO')
+      if (!receipt) return
+
+      setStatus('Éxito: custodia transferida a ACOPIO')
+    } finally {
+      setLocalLoading(false)
+    }
+  }, [addressAcopio, ensureWallet, lastId, transferirCustodia])
 
   const copyLastId = useCallback(async () => {
     if (!lastId) return
@@ -171,6 +205,26 @@ export default function ProductionPage() {
           ) : null}
 
           {showQr && lastId ? <QrLabel lotId={lastId} /> : null}
+
+          {lastId ? (
+            <Card className="p-4 bg-white">
+              <div className="text-sm">Transferencia</div>
+              <div className="mt-2 text-xs font-bold">Address del centro de acopio</div>
+              <div className="mt-2">
+                <Input
+                  value={addressAcopio}
+                  onChange={(e) => setAddressAcopio(e.target.value)}
+                  placeholder="0x..."
+                  disabled={busy}
+                />
+              </div>
+              <div className="mt-3">
+                <Button variant="secondary" className="w-full" disabled={!canTransferToAcopio} onClick={handleTransferToAcopio}>
+                  {busy ? 'Cargando...' : 'TRANSFERIR A ACOPIO'}
+                </Button>
+              </div>
+            </Card>
+          ) : null}
 
           {lastId ? (
             <Card className="p-4 bg-white">

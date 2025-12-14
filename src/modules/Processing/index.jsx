@@ -16,7 +16,7 @@ export default function ProcessingPage() {
   const [haccpUrl, setHaccpUrl] = useState('')
   const [isUploadingHaccp, setIsUploadingHaccp] = useState(false)
   const [fileInputKey, setFileInputKey] = useState(0)
-  const [addressLogistica, setAddressLogistica] = useState('')
+  const [addressLogistica, setAddressLogistica] = useState(() => import.meta.env.VITE_WALLET_LOGISTICS || '')
   const [status, setStatus] = useState(null)
   const [localLoading, setLocalLoading] = useState(false)
   const [qrLotId, setQrLotId] = useState(null)

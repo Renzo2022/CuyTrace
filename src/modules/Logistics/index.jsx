@@ -10,7 +10,7 @@ export default function LogisticsPage() {
   const { account, connectWallet, transferirCustodia, reportarIoT, isConnecting, isTransacting } = useSupplyChain()
 
   const [idCustodia, setIdCustodia] = useState('')
-  const [addressRetail, setAddressRetail] = useState('')
+  const [addressRetail, setAddressRetail] = useState(() => import.meta.env.VITE_WALLET_RETAIL || '')
   const [idIoT, setIdIoT] = useState('')
   const [temperatura, setTemperatura] = useState('3')
   const [coordenadas, setCoordenadas] = useState('')
