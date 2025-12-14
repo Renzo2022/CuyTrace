@@ -7,7 +7,7 @@ import Badge from '../../shared/ui/Badge.jsx'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
 
 export default function LogisticsPage() {
-  const { account, connectWallet, transferirCustodia, reportarIoT, isConnecting, isTransacting } = useSupplyChain()
+  const { account, connectWallet, transferirCustodia, reportarIoT, obtenerLote, isConnecting, isTransacting } = useSupplyChain()
 
   const [idCustodia, setIdCustodia] = useState('')
   const [addressRetail, setAddressRetail] = useState(() => import.meta.env.VITE_WALLET_RETAIL || '')
@@ -49,6 +49,22 @@ export default function LogisticsPage() {
 
     setLocalLoading(true)
     try {
+      const lote = await obtenerLote(idCustodia.trim())
+      if (!lote) {
+        setStatus('No se pudo leer el lote antes de entregar')
+        return
+      }
+
+      const estado = typeof lote.estado === 'bigint' ? Number(lote.estado) : Number(lote.estado)
+      if (estado === 5) {
+        setStatus('Bloqueado: el lote está RECHAZADO')
+        return
+      }
+      if (estado !== 4) {
+        setStatus('Bloqueado: SENASA debe inspeccionar/aprobar antes de entregar a Retail')
+        return
+      }
+
       const acc = await ensureWallet()
       if (!acc) return
 
@@ -58,7 +74,7 @@ export default function LogisticsPage() {
     } finally {
       setLocalLoading(false)
     }
-  }, [addressRetail, ensureWallet, idCustodia, transferirCustodia])
+  }, [addressRetail, ensureWallet, idCustodia, obtenerLote, transferirCustodia])
 
   const handleIoT = useCallback(async () => {
     setStatus(null)

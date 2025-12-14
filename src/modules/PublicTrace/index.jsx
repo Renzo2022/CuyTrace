@@ -6,6 +6,7 @@ import Card from '../../shared/ui/Card.jsx'
 import Input from '../../shared/ui/Input.jsx'
 import Badge from '../../shared/ui/Badge.jsx'
 import { useSupplyChain } from '../../shared/context/SupplyChainContext.jsx'
+import { USERS } from '../../shared/data/mockUsers.js'
 
 function toPinataGatewayUrl(value) {
   if (!value) return null
@@ -38,10 +39,41 @@ function formatDate(seconds) {
   }
 }
 
+function normalizeAddress(value) {
+  if (!value) return ''
+  return String(value).toLowerCase()
+}
+
+function shortAddress(value) {
+  const v = String(value || '')
+  if (v.length < 12) return v
+  return `${v.slice(0, 6)}...${v.slice(-4)}`
+}
+
 export default function PublicTracePage() {
   const { obtenerLote } = useSupplyChain()
   const params = useParams()
   const navigate = useNavigate()
+
+  const addressLabels = useMemo(() => {
+    const map = {}
+    for (const u of USERS || []) {
+      const key = normalizeAddress(u?.walletAddress)
+      if (!key) continue
+      map[key] = `${u.name} (${u.role})`
+    }
+    return map
+  }, [])
+
+  const formatAddress = useCallback(
+    (addr) => {
+      const v = String(addr || '')
+      const label = addressLabels[normalizeAddress(v)]
+      if (!label) return v
+      return `${label} — ${shortAddress(v)}`
+    },
+    [addressLabels],
+  )
 
   const [id, setId] = useState('')
   const [lote, setLote] = useState(null)
@@ -181,7 +213,7 @@ export default function PublicTracePage() {
 
                 <Card className="p-4 bg-background">
                   <div className="text-xs uppercase tracking-wide">Custodio Actual</div>
-                  <div className="mt-1 text-xs break-all">{String(lote.custodioActual)}</div>
+                  <div className="mt-1 text-xs break-all">{formatAddress(lote.custodioActual)}</div>
                 </Card>
 
                 <Card className="p-4 bg-background">
@@ -227,7 +259,7 @@ export default function PublicTracePage() {
                   {(lote.historialCustodios || []).length ? (
                     lote.historialCustodios.map((addr, i) => (
                       <div key={`${addr}-${i}`} className="text-xs break-all">
-                        {i + 1}. {String(addr)}
+                        {i + 1}. {formatAddress(addr)}
                       </div>
                     ))
                   ) : (

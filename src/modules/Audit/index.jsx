@@ -22,14 +22,20 @@ export default function AuditPage() {
 
   const busy = isConnecting || isTransacting || localLoading || isUploadingActa
 
+  const inspectionLocked = useMemo(() => {
+    if (!lote) return false
+    const n = typeof lote.estado === 'bigint' ? Number(lote.estado) : Number(lote.estado)
+    return n === 4 || n === 5
+  }, [lote])
+
   const ensureWallet = useCallback(async () => {
     if (account) return account
     return await connectWallet()
   }, [account, connectWallet])
 
   const canSubmit = useMemo(() => {
-    return id.trim().length > 0 && actaUrl.trim().length > 0 && !busy
-  }, [id, actaUrl, busy])
+    return id.trim().length > 0 && actaUrl.trim().length > 0 && !busy && !inspectionLocked
+  }, [id, actaUrl, busy, inspectionLocked])
 
   const handleActaFile = useCallback(async (e) => {
     const file = e.target.files?.[0] || null
@@ -86,6 +92,18 @@ export default function AuditPage() {
 
     setLocalLoading(true)
     try {
+      const before = await obtenerLote(id.trim())
+      if (!before) {
+        setStatus('No se pudo leer el lote antes de registrar la inspección')
+        return
+      }
+      setLote(before)
+      const n = typeof before.estado === 'bigint' ? Number(before.estado) : Number(before.estado)
+      if (n === 4 || n === 5) {
+        setStatus('Bloqueado: el lote ya fue inspeccionado o rechazado')
+        return
+      }
+
       const acc = await ensureWallet()
       if (!acc) return
 
@@ -95,10 +113,13 @@ export default function AuditPage() {
       setActaFile(null)
       setActaUrl('')
       setFileInputKey((k) => k + 1)
+
+      const after = await obtenerLote(id.trim())
+      if (after) setLote(after)
     } finally {
       setLocalLoading(false)
     }
-  }, [actaUrl, aprobado, ensureWallet, id, inspeccionarSenasa])
+  }, [actaUrl, aprobado, ensureWallet, id, inspeccionarSenasa, obtenerLote])
 
   return (
     <div className="space-y-4">
@@ -161,7 +182,7 @@ export default function AuditPage() {
                 type="checkbox"
                 checked={aprobado}
                 onChange={(e) => setAprobado(e.target.checked)}
-                disabled={busy}
+                disabled={busy || inspectionLocked}
               />
               <div className="text-sm">¿Aprobado?</div>
             </label>
@@ -175,7 +196,7 @@ export default function AuditPage() {
                 type="file"
                 accept="application/pdf"
                 onChange={handleActaFile}
-                disabled={busy}
+                disabled={busy || inspectionLocked}
                 className="w-full border-2 border-black shadow-brutal bg-white px-3 py-2 rounded-lg font-bold"
               />
               <div className="mt-2 text-xs">
