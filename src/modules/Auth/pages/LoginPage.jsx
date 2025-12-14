@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ShieldCheck, Wallet } from 'lucide-react'
+import { Search, ShieldCheck, Wallet } from 'lucide-react'
 import Card from '../../../shared/ui/Card.jsx'
 import Button from '../../../shared/ui/Button.jsx'
 import { useAuth } from '../../../shared/context/AuthContext.jsx'
@@ -189,6 +189,10 @@ export default function LoginPage() {
     navigate(to, { replace: true })
   }, [account, connectWallet, disconnectWallet, hasMetaMask, login, navigate, users])
 
+  const handlePublicTrace = useCallback(() => {
+    navigate('/trace')
+  }, [navigate])
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="border-2 border-black shadow-brutal bg-white p-6">
@@ -273,6 +277,13 @@ export default function LoginPage() {
             <Button className="w-full bg-black text-white" disabled={isConnecting || isTransacting} onClick={handleConnect}>
               <Wallet className="h-4 w-4" />
               {isConnecting ? 'Conectando...' : 'INGRESAR CON METAMASK'}
+            </Button>
+          </div>
+
+          <div className="mt-3">
+            <Button className="w-full" variant="ghost" disabled={isConnecting || isTransacting} onClick={handlePublicTrace}>
+              <Search className="h-4 w-4" />
+              HACER CONSULTA DE LOTE
             </Button>
           </div>
         </Card>
