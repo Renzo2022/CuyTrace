@@ -1,7 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { BrowserProvider, Contract } from 'ethers'
+import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers'
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0xA8A3aeFb797158cce9315124Ce3CCe2BEc616505'
+const PUBLIC_RPC_URL =
+  import.meta.env.VITE_PUBLIC_RPC_URL ||
+  'https://ethereum-sepolia-rpc.publicnode.com'
 
 const CONTRACT_ABI = [
   { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
@@ -214,24 +217,29 @@ export function SupplyChainProvider({ children }) {
 
   const hasMetaMask = typeof window !== 'undefined' && Boolean(window.ethereum)
 
-  const getProvider = useCallback(async () => {
+  const readOnlyProvider = useMemo(() => new JsonRpcProvider(PUBLIC_RPC_URL), [])
+
+  const getReadProvider = useCallback(async () => {
+    return readOnlyProvider
+  }, [readOnlyProvider])
+
+  const getWalletProvider = useCallback(async () => {
     if (!hasMetaMask) {
-      alert('MetaMask no está disponible en este navegador')
       throw new Error('MetaMask not available')
     }
     return new BrowserProvider(window.ethereum)
   }, [hasMetaMask])
 
   const getReadContract = useCallback(async () => {
-    const provider = await getProvider()
+    const provider = await getReadProvider()
     return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider)
-  }, [getProvider])
+  }, [getReadProvider])
 
   const getWriteContract = useCallback(async () => {
-    const provider = await getProvider()
+    const provider = await getWalletProvider()
     const signer = await provider.getSigner()
     return new Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer)
-  }, [getProvider])
+  }, [getWalletProvider])
 
   const refreshSession = useCallback(async () => {
     if (!hasMetaMask) return

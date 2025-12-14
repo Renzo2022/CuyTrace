@@ -7,8 +7,12 @@ import Button from './Button.jsx'
 function getTrackUrl(id) {
   if (!id && id !== 0) return ''
   const safeId = String(id)
-  if (typeof window === 'undefined') return `https://cuytrace.vercel.app/track/${safeId}`
-  return `${window.location.origin}/track/${safeId}`
+  const baseFromEnv = import.meta.env.VITE_PUBLIC_APP_URL
+  const base =
+    baseFromEnv ||
+    (typeof window !== 'undefined' ? window.location.origin : null) ||
+    'https://cuytrace.vercel.app'
+  return `${String(base).replace(/\/+$/, '')}/track/${safeId}`
 }
 
 export default function QrLabel({ lotId }) {
