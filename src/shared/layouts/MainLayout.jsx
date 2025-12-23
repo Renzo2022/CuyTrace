@@ -41,7 +41,7 @@ export default function MainLayout({ title, children }) {
   ]
 
   return (
-    <div className="min-h-screen bg-background text-text">
+    <div className="bg-background text-text">
       <div className="mx-auto max-w-6xl p-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
           <Card className="p-4 rounded-lg bg-white">
